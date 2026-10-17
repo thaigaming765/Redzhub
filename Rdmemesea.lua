@@ -1,5 +1,5 @@
 -- ==========================================
--- THAIMOD48H - MEME SEA LOADER & MOD (TỐI ƯU MEMU)
+-- THAIMOD48H - MEME SEA LOADER & MOD (FIXED)
 -- ==========================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -7,16 +7,14 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. Tạo giao diện Loading (Hình chữ nhật bo góc + thaimod48h + ống tải)
+-- 1. TẠO GIAO DIỆN LOADING (Bo góc + thaimod48h + Ống tải)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ThaimodLoading"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local successGui = pcall(function()
-    ScreenGui.Parent = CoreGui
-end)
-if not successGui and LocalPlayer:FindFirstChild("PlayerGui") then
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent and LocalPlayer:FindFirstChild("PlayerGui") then
     ScreenGui.Parent = LocalPlayer.PlayerGui
 end
 
@@ -77,7 +75,6 @@ local BarFillCorner = Instance.new("UICorner")
 BarFillCorner.CornerRadius = UDim.new(1, 0)
 BarFillCorner.Parent = BarFill
 
--- Hàm hiệu ứng thanh tiến trình
 local function updateProgress(targetSize, text, duration)
     Status.Text = text
     TweenService:Create(BarFill, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -85,39 +82,29 @@ local function updateProgress(targetSize, text, duration)
     }):Play()
 end
 
--- Tiến trình chạy
+-- 2. TIẾN TRÌNH CHẠY SCRIPT
 task.spawn(function()
-    updateProgress(0.3, "Đang kết nối tài nguyên...", 0.4)
+    updateProgress(0.4, "Đang kết nối tài nguyên...", 0.4)
     task.wait(0.5)
 
-    updateProgress(0.7, "Đang tải mã nguồn Meme Sea...", 0.6)
-    
-    local scriptUrl = "https://raw.githubusercontent.com/thaigaming765/Redzhub/refs/heads/main/Rdmemesea.lua"
-    local success, scriptContent = pcall(function()
-        return game:HttpGet(scriptUrl)
-    end)
-
-    if not success or not scriptContent then
-        Status.Text = "Lỗi tải script!"
-        task.wait(2)
-        ScreenGui:Destroy()
-        return
-    end
-
-    updateProgress(1.0, "Tải hoàn tất! Đang khởi chạy...", 0.4)
+    updateProgress(0.8, "Đang tải script Meme Sea...", 0.5)
     task.wait(0.5)
 
-    -- Mờ dần và xóa bảng loading
+    updateProgress(1.0, "Tải hoàn tất! Đang bật...", 0.3)
+    task.wait(0.4)
+
+    -- Đóng giao diện Loading
     TweenService:Create(Frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
     task.wait(0.3)
     ScreenGui:Destroy()
 
-    -- Thực thi script gốc
-    pcall(function()
-        loadstring(scriptContent)()
+    -- BẬT SCRIPT GỐC (Gọi URL trực tiếp để không bị lặp vô tận)
+    task.spawn(function()
+        local scriptUrl = "https://raw.githubusercontent.com/thaigaming765/Redzhub/refs/heads/main/Rdmemesea.lua"
+        loadstring(game:HttpGet(scriptUrl))()
     end)
 
-    -- 2. Tự động bật Anti-AFK (chống văng 20 phút do đứng im)
+    -- 3. BẬT ANTI-AFK (Chống văng 20 phút do đứng im)
     task.spawn(function()
         local vu = game:GetService("VirtualUser")
         LocalPlayer.Idled:Connect(function()
@@ -127,7 +114,7 @@ task.spawn(function()
         end)
     end)
 
-    -- 3. Tự động Việt hóa UI và ẩn Discord (Đã tối ưu hóa tránh lag cho giả lập Memu)
+    -- 4. BỘ VIỆT HÓA VÀ ẨN DISCORD (Mượt nhẹ trên giả lập Memu)
     task.spawn(function()
         local translations = {
             ["auto farm"] = "Tự Động Cày",
@@ -141,53 +128,53 @@ task.spawn(function()
             ["misc"] = "Tính Năng Khác",
             ["settings"] = "Cài Đặt",
             ["combat"] = "PVP / Đánh Nhau",
-            ["player"] = "Người Chơi"
+            ["player"] = "Người Chơi",
+            ["weapon"] = "Vũ Khí",
+            ["select"] = "Chọn"
         }
 
-        local processed = {}
-
         local function processObject(obj)
-            if not obj or processed[obj] then return end
+            if not obj then return end
             if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                processed[obj] = true
                 local txt = obj.Text
-                local lowerTxt = string.lower(txt)
+                if txt and txt ~= "" then
+                    local lowerTxt = string.lower(txt)
 
-                -- Ẩn các thành phần liên quan đến Discord
-                if lowerTxt:find("discord") or lowerTxt:find("copy link") or lowerTxt:find("invite") or lowerTxt:find("community") then
-                    local p = obj.Parent
-                    if p and p:IsA("GuiObject") then
-                        p.Visible = false
+                    -- Ẩn Discord
+                    if lowerTxt:find("discord") or lowerTxt:find("copy link") or lowerTxt:find("invite") then
+                        if obj.Parent and obj.Parent:IsA("GuiObject") then
+                            obj.Parent.Visible = false
+                        end
+                        obj.Visible = false
+                        return
                     end
-                    obj.Visible = false
-                    return
-                end
 
-                -- Dịch các tính năng sang tiếng Việt
-                for k, v in pairs(translations) do
-                    if lowerTxt == k or lowerTxt:find(k) then
-                        obj.Text = v
-                        break
+                    -- Việt hóa
+                    for key, val in pairs(translations) do
+                        if lowerTxt == key or lowerTxt:find(key) then
+                            obj.Text = val
+                            break
+                        end
                     end
                 end
             end
         end
 
-        local function scanGui(root)
-            for _, obj in ipairs(root:GetDescendants()) do
-                processObject(obj)
-            end
-        end
+        -- Đợi menu RedzHub xuất hiện rồi mới quét
+        task.wait(3)
 
-        -- Quét định kỳ mỗi 2.5 giây (Giúp máy giảm tải tối đa, mượt mà trên Memu)
         while true do
             pcall(function()
-                scanGui(CoreGui)
+                for _, obj in ipairs(CoreGui:GetDescendants()) do
+                    processObject(obj)
+                end
                 if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
-                    scanGui(LocalPlayer.PlayerGui)
+                    for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                        processObject(obj)
+                    end
                 end
             end)
-            task.wait(2.5)
+            task.wait(3) -- Quét mỗi 3 giây để không tốn RAM Memu
         end
     end)
 end)
